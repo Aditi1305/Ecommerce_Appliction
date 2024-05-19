@@ -1,0 +1,5 @@
+package com.example.paymentService.models;
+
+public class BaseModel {
+
+}
