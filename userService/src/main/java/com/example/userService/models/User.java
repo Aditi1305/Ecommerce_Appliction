@@ -21,7 +21,7 @@ public class User extends BaseModel{
     private String hashedPassword;
 
     @ManyToMany(fetch= FetchType.EAGER)
-    @JsonIgnore
+    //@JsonIgnore
     private Set<Role> roles=new HashSet<>();
     private boolean isEmailVerified;
 }

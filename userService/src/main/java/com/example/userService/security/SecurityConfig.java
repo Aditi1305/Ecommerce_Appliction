@@ -4,6 +4,7 @@ import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.Set;
 import java.util.UUID;
@@ -28,6 +29,8 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.NoOpPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
 import org.springframework.security.oauth2.core.oidc.OidcScopes;
@@ -40,6 +43,8 @@ import org.springframework.security.oauth2.server.authorization.config.annotatio
 import org.springframework.security.oauth2.server.authorization.config.annotation.web.configurers.OAuth2AuthorizationServerConfigurer;
 import org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings;
 import org.springframework.security.oauth2.server.authorization.settings.ClientSettings;
+import org.springframework.security.oauth2.server.authorization.settings.OAuth2TokenFormat;
+import org.springframework.security.oauth2.server.authorization.settings.TokenSettings;
 import org.springframework.security.oauth2.server.authorization.token.JwtEncodingContext;
 import org.springframework.security.oauth2.server.authorization.token.OAuth2TokenCustomizer;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
@@ -51,11 +56,9 @@ import org.springframework.security.web.util.matcher.MediaTypeRequestMatcher;
 @EnableWebSecurity
 public class SecurityConfig {
 
-    private BCryptPasswordEncoder bCryptPasswordEncoder;
-
-    @Autowired
-    public SecurityConfig(BCryptPasswordEncoder bCryptPasswordEncoder) {
-        this.bCryptPasswordEncoder = bCryptPasswordEncoder;
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return NoOpPasswordEncoder.getInstance();
     }
 
     @Bean
@@ -98,34 +101,37 @@ public class SecurityConfig {
 
         return http.build();
     }
-
     @Bean
     public UserDetailsService userDetailsService() {
-        UserDetails userDetails = User.builder()
-                .username("user")
-                .password(bCryptPasswordEncoder.encode("password"))
-                .roles("USER")
+        var u1 = User.withUsername("user")
+                .password("password")
+                .authorities("read")
                 .build();
 
-       return new InMemoryUserDetailsManager(userDetails);
+        return new InMemoryUserDetailsManager(u1);
     }
+//http://127.0.0.1:8080/oauth2/authorize?response_type=code&client_id=client&scope=openid&redirect_uri=https://springone.io/authorized&code_challenge=A0new9MHKBSVtGzBZ1dizor8Ol7NCsktUtTc4B_W3Og&code_challenge_method=S256
 
     @Bean
     public RegisteredClientRepository registeredClientRepository() {
-       RegisteredClient oidcClient = RegisteredClient.withId(UUID.randomUUID().toString())
-               .clientId("oidc-client")
-                .clientSecret(bCryptPasswordEncoder.encode("secret"))
+        RegisteredClient r1 = RegisteredClient.withId(UUID.randomUUID().toString())
+                .clientId("client")
+                .clientSecret("secret")
                 .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
-                .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
-                .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
-                .redirectUri("https://oauth.pstmn.io/v1/callback")
-                //.postLogoutRedirectUri("http://127.0.0.1:8080/")
                 .scope(OidcScopes.OPENID)
                 .scope(OidcScopes.PROFILE)
-                .clientSettings(ClientSettings.builder().requireAuthorizationConsent(true).build())
+                .redirectUri("https://springone.io/authorized")
+                .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
+                .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
+                .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
+                .tokenSettings(
+                        TokenSettings.builder()
+                                .accessTokenFormat(OAuth2TokenFormat.REFERENCE)
+                                .accessTokenTimeToLive(Duration.ofSeconds(900))
+                                .build())
                 .build();
 
-        return new InMemoryRegisteredClientRepository(oidcClient);
+        return new InMemoryRegisteredClientRepository(r1);
     }
 
     @Bean
@@ -386,7 +392,7 @@ public class SecurityConfig {
 
         return new InMemoryUserDetailsManager(userDetails);
     }
-//http://127.0.0.1:8080/oauth2/authorize?response_type=code&client_id=oidc-client&scope=openid&redirect_uri=https://oauth.pstmn.io/v1/callback&code_challenge=e0S4gJv4E4SVAJB9errV_ZAh_FxFwREfAYagShmouxw&code_challenge_method=S256
+//http://127.0.0.1:8080/oauth2/authorize?response_type=code&client_id=oidc-client&scope=openid&redirect_uri=https://oauth.pstmn.io/v1/callback&code_challenge=5AoKOqcpjU6iE7BlElVON9lnCd0OplkoCfbMmTkJ6us&code_challenge_method=S256
    @Bean
     public RegisteredClientRepository registeredClientRepository() {
         RegisteredClient oidcClient = RegisteredClient.withId(UUID.randomUUID().toString())

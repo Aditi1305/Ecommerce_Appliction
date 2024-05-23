@@ -30,14 +30,14 @@ import java.util.Optional;
 public class AuthService {
 
     private UserRepository userRepository;
-    private BCryptPasswordEncoder bCryptPasswordEncoder;
+    //private BCryptPasswordEncoder bCryptPasswordEncoder;
     private SecretKey secretKey;
     private SessionRepository sessionRepository;
 
     @Autowired
-    public AuthService(UserRepository userRepository,BCryptPasswordEncoder bCryptPasswordEncoder,SessionRepository sessionRepository){
+    public AuthService(UserRepository userRepository,SessionRepository sessionRepository){
         this.userRepository=userRepository;
-        this.bCryptPasswordEncoder=bCryptPasswordEncoder;
+        //this.bCryptPasswordEncoder=bCryptPasswordEncoder;
         this.sessionRepository=sessionRepository;
         secretKey = Jwts.SIG.HS256.key().build();
     }
@@ -50,9 +50,9 @@ public class AuthService {
         }
         User user= userOptional.get();
         System.err.println("hello world");
-        if(!bCryptPasswordEncoder.matches(password, user.getHashedPassword())){
+        /*if(!bCryptPasswordEncoder.matches(password, user.getHashedPassword())){
             throw new RuntimeException("password/username does not exist");
-        }
+        }*/
 
         Map<String,Object> jwtData=new HashMap<>();
         jwtData.put("email",email);
@@ -78,7 +78,7 @@ public class AuthService {
     public UserDto signUp(String email,String password){
         User user=new User();
         user.setEmail(email);
-        user.setHashedPassword(bCryptPasswordEncoder.encode(password));
+        user.setHashedPassword(password);
 
         User savedUser=userRepository.save(user);
         /*try{
