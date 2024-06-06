@@ -1,5 +1,6 @@
 package com.example.userService.services;
 
+import com.example.userService.client.KafkaProducerClient;
 import com.example.userService.dto.SendEmailMessageDto;
 import com.example.userService.dto.UserDto;
 import com.example.userService.models.Session;
@@ -7,6 +8,7 @@ import com.example.userService.models.SessionStatus;
 import com.example.userService.models.User;
 import com.example.userService.repositories.SessionRepository;
 import com.example.userService.repositories.UserRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Jwts;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -34,12 +36,18 @@ public class AuthService {
     private SecretKey secretKey;
     private SessionRepository sessionRepository;
 
+    private KafkaProducerClient kafkaProducerClient;
+    private ObjectMapper objectMapper;
+
+
     @Autowired
-    public AuthService(UserRepository userRepository,SessionRepository sessionRepository){
+    public AuthService(UserRepository userRepository,SessionRepository sessionRepository,KafkaProducerClient kafkaProducerClient, ObjectMapper objectMapper){
         this.userRepository=userRepository;
         //this.bCryptPasswordEncoder=bCryptPasswordEncoder;
         this.sessionRepository=sessionRepository;
         secretKey = Jwts.SIG.HS256.key().build();
+        this.kafkaProducerClient = kafkaProducerClient;
+        this.objectMapper = objectMapper;
     }
 
 
@@ -81,19 +89,19 @@ public class AuthService {
         user.setHashedPassword(password);
 
         User savedUser=userRepository.save(user);
-        /*try{
-            SendEmailMessageDto sendEmailMessageDto=new SendEmailMessageDto();
+        try {
+            SendEmailMessageDto sendEmailMessageDto = new SendEmailMessageDto();
             sendEmailMessageDto.setTo(savedUser.getEmail());
             sendEmailMessageDto.setFrom("aditi1305sinha@gmail.com");
+            sendEmailMessageDto.setBody("Hi , Welcome to my ecommerce website");
             sendEmailMessageDto.setSubject("Welcome");
-            sendEmailMessageDto.setBody("Welcome to our application");
-
+            kafkaProducerClient.sendMessage("email", objectMapper.writeValueAsString(sendEmailMessageDto));
         }
-        */
-         /*
         catch(Exception e){
             System.out.println("Some exception occurred");
-        }*/
+        }
+
+
         return UserDto.from(savedUser);
     }
 
